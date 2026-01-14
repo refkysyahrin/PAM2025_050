@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -71,4 +72,21 @@ dependencies {
     // 4. ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
+
+    // --- NAVIGASI ---
+    implementation(libs.androidx.navigation.compose)
+
+    // --- RETROFIT & GSON (SERVER) ---
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
+
+    // --- COIL (GAMBAR) ---
+    implementation(libs.coil.compose)
+
+    // --- SERIALIZATION ---
+    implementation(libs.kotlinx.serialization.json)
+
+    // --- MATERIAL ICONS EXTENDED (Visual) ---
+    implementation(libs.androidx.material.icons.extended)
 }
