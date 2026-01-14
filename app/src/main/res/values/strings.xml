@@ -1,3 +1,37 @@
 <resources>
     <string name="app_name">Yourtis</string>
+    <string name="app_slogan">saYour prakTis</string>
+
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="username">Username</string>
+    <string name="nama_lengkap">Nama Lengkap</string>
+    <string name="no_hp">No. Handphone</string>
+    <string name="alamat">Alamat Lengkap</string>
+    <string name="pilih_peran">Daftar Sebagai</string>
+
+    <string name="hint_email">nama@email.com</string>
+    <string name="hint_password">Masukkan kata sandi</string>
+    <string name="hint_no_hp">08xxxxxxxxxx</string>
+    <string name="hint_alamat">Jl. Mawar No. 10, Yogyakarta...</string>
+
+    <string name="btn_login">Login</string>
+    <string name="btn_register">Daftar Akun Baru</string>
+    <string name="btn_simpan">Simpan</string>
+    <string name="btn_batal">Batal</string>
+
+    <string name="text_belum_punya_akun">Belum punya akun?</string>
+    <string name="text_sudah_punya_akun">Sudah punya akun? Login</string>
+    <string name="register_title">Registrasi</string>
+    <string name="login_title">Masuk</string>
+
+    <string name="role_petani">Petani</string>
+    <string name="role_pembeli">Pembeli</string>
+
+    <string name="loading">Memuat...</string>
+    <string name="error_empty_field">Field ini tidak boleh kosong</string>
+    <string name="login_success">Login Berhasil!</string>
+    <string name="login_failed">Login Gagal, periksa email/sandi</string>
+    <string name="register_success">Registrasi Berhasil!</string>
+    <string name="network_error">Gagal terhubung ke server</string>
 </resources>
