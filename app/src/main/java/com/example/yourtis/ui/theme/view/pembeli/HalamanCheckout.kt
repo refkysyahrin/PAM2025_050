@@ -50,7 +50,7 @@ import com.example.yourtis.ui.theme.viewmodel.PenyediaViewModel
 fun HalamanCheckout(
     onNavigateBack: () -> Unit,
     onCheckoutSuccess: () -> Unit,
-    viewModel: PembeliViewModel // Menggunakan shared instance dari PengelolaHalaman
+    viewModel: PembeliViewModel // Menggunakan shared instance
 ) {
     var alamat by remember { mutableStateOf("") }
     var metodeKirim by remember { mutableStateOf("Diantar") }
@@ -160,8 +160,8 @@ fun HalamanCheckout(
             // Tombol Buat Pesanan
             Button(
                 onClick = {
-                    // PERBAIKAN: Memasukkan parameter (alamat, metodeKirim, metodeBayar)
-                    // ID Pembeli sudah tersimpan otomatis di Shared ViewModel
+                    // PERBAIKAN: Menghapus argumen '1' dan memastikan urutan parameter benar
+                    // ID pembeli diambil otomatis dari currentUserId di ViewModel
                     viewModel.processCheckout(alamat, metodeKirim, metodeBayar)
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
