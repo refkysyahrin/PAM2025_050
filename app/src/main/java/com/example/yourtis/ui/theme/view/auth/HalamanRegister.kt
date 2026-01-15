@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,6 +48,7 @@ import com.example.yourtis.ui.theme.viewmodel.AuthViewModel
 import com.example.yourtis.ui.theme.viewmodel.LoginUiState
 import com.example.yourtis.ui.theme.viewmodel.PenyediaViewModel
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanRegister(
@@ -53,21 +56,16 @@ fun HalamanRegister(
     onNavigateBack: () -> Unit,
     viewModel: AuthViewModel = viewModel(factory = PenyediaViewModel.Factory)
 ) {
-    // State Form Input
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var noHp by remember { mutableStateOf("") }
-    var alamat by remember { mutableStateOf("") }
-
-    // State Pilihan Role (Petani vs Pembeli)
-    val roles = listOf("Pembeli", "Petani")
-    val (selectedRole, onOptionSelected) = remember { mutableStateOf(roles[0]) }
-
+    val scrollState = rememberScrollState()
     var passwordVisible by remember { mutableStateOf(false) }
-    val registerState = viewModel.loginUiState
 
-    // Efek Samping: Jika sukses, kembali ke login
+    // Memantau status dari ViewModel
+    val registerState = viewModel.uiState // PERBAIKAN: Gunakan 'uiState'
+
+    // State Pilihan Role
+    val roles = listOf("Pembeli", "Petani")
+
+    // Efek Samping: Jika sukses
     LaunchedEffect(registerState) {
         if (registerState is LoginUiState.Success) {
             onRegisterSuccess()
@@ -77,24 +75,22 @@ fun HalamanRegister(
 
     Scaffold(
         topBar = {
-            // Judul Halaman Sederhana
-            CenterAlignedTopAppBar(title = { Text(stringResource(R.string.register_title)) })
+            CenterAlignedTopAppBar(title = { Text("Registrasi Akun Baru") })
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+                .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()), // Agar bisa discroll jika keyboard muncul
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // 1. Input Username
+            // 1. Input Username (Langsung bind ke ViewModel)
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text(stringResource(R.string.username)) },
+                value = viewModel.username, // PERBAIKAN: Binding ke ViewModel
+                onValueChange = { viewModel.username = it },
+                label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -103,9 +99,9 @@ fun HalamanRegister(
 
             // 2. Input Email
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text(stringResource(R.string.email)) },
+                value = viewModel.email, // PERBAIKAN: Binding ke ViewModel
+                onValueChange = { viewModel.email = it },
+                label = { Text("Email") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -115,9 +111,9 @@ fun HalamanRegister(
 
             // 3. Input Password
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text(stringResource(R.string.password)) },
+                value = viewModel.password, // PERBAIKAN: Binding ke ViewModel
+                onValueChange = { viewModel.password = it },
+                label = { Text("Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
@@ -134,9 +130,9 @@ fun HalamanRegister(
 
             // 4. Input No HP
             OutlinedTextField(
-                value = noHp,
-                onValueChange = { noHp = it },
-                label = { Text(stringResource(R.string.no_hp)) },
+                value = viewModel.noHp, // PERBAIKAN: Binding ke ViewModel
+                onValueChange = { viewModel.noHp = it },
+                label = { Text("No. Handphone") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -146,18 +142,18 @@ fun HalamanRegister(
 
             // 5. Input Alamat
             OutlinedTextField(
-                value = alamat,
-                onValueChange = { alamat = it },
-                label = { Text(stringResource(R.string.alamat)) },
+                value = viewModel.alamat, // PERBAIKAN: Binding ke ViewModel
+                onValueChange = { viewModel.alamat = it },
+                label = { Text("Alamat Lengkap") },
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
+                minLines = 3
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 6. Pilihan Role (Radio Buttons)
             Text(
-                text = stringResource(R.string.pilih_peran),
+                text = "Daftar Sebagai:",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.Start)
             )
@@ -165,24 +161,20 @@ fun HalamanRegister(
                 roles.forEach { text ->
                     Row(
                         Modifier
-                            .height(56.dp)
+                            .weight(1f)
                             .selectable(
-                                selected = (text == selectedRole),
-                                onClick = { onOptionSelected(text) },
+                                selected = (text == viewModel.role),
+                                onClick = { viewModel.role = text },
                                 role = androidx.compose.ui.semantics.Role.RadioButton
                             )
-                            .padding(horizontal = 16.dp),
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = (text == selectedRole),
-                            onClick = null // null karena onclick ditangani oleh Row
+                            selected = (text == viewModel.role),
+                            onClick = null
                         )
-                        Text(
-                            text = text,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
+                        Text(text = text, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -192,31 +184,27 @@ fun HalamanRegister(
             // 7. Pesan Error
             if (registerState is LoginUiState.Error) {
                 Text(
-                    text = viewModel.errorMessage,
-                    color = MaterialTheme.colorScheme.error
+                    text = "Gagal Daftar: Email mungkin sudah dipakai",
+                    color = Color.Red,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
 
             // 8. Tombol Daftar
             Button(
-                onClick = {
-                    viewModel.register(
-                        username, email, password, selectedRole, noHp, alamat
-                    )
-                },
+                onClick = { viewModel.register(onRegisterSuccess) }, // PERBAIKAN: Parameter hanya callback
                 enabled = registerState !is LoginUiState.Loading,
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
                 if (registerState is LoginUiState.Loading) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text(stringResource(R.string.btn_register))
+                    Text("Daftar Akun Baru")
                 }
             }
 
-            // Tombol Kembali
             TextButton(onClick = onNavigateBack) {
-                Text(stringResource(R.string.btn_batal))
+                Text("Batal")
             }
         }
     }

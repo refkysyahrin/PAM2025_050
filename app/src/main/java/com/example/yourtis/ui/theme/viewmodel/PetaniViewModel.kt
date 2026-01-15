@@ -6,49 +6,97 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yourtis.modeldata.Sayur
+import com.example.yourtis.modeldata.Transaksi
 import com.example.yourtis.repositori.YourTisRepository
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-// Status UI Dashboard
-sealed interface HomeUiState {
-    data class Success(val sayur: List<Sayur>) : HomeUiState
-    object Error : HomeUiState
-    object Loading : HomeUiState
+// State untuk Dashboard (Pendapatan & List Transaksi)
+sealed interface DashboardUiState {
+    data class Success(
+        val totalPendapatan: Int,
+        val jumlahPesanan: Int,
+        val listTransaksi: List<Transaksi>
+    ) : DashboardUiState
+    object Error : DashboardUiState
+    object Loading : DashboardUiState
+}
+
+// State untuk Produk (CRUD Sayur)
+sealed interface ProdukUiState {
+    data class Success(val sayur: List<Sayur>) : ProdukUiState
+    object Error : ProdukUiState
+    object Loading : ProdukUiState
 }
 
 class PetaniViewModel(private val repository: YourTisRepository) : ViewModel() {
 
-    var homeUiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
+    var dashboardUiState: DashboardUiState by mutableStateOf(DashboardUiState.Loading)
+        private set
+
+    var produkUiState: ProdukUiState by mutableStateOf(ProdukUiState.Loading)
         private set
 
     init {
-        getSayur()
+        loadDashboard()
+        loadProduk()
     }
 
-    // Ambil Data Sayur (Refresh)
-    fun getSayur() {
+    // 1. Load Data Dashboard
+    fun loadDashboard() {
         viewModelScope.launch {
-            homeUiState = HomeUiState.Loading
+            dashboardUiState = DashboardUiState.Loading
             try {
-                val listSayur = repository.getSayur()
-                homeUiState = HomeUiState.Success(listSayur)
-            } catch (e: IOException) {
-                homeUiState = HomeUiState.Error
+                val list = repository.getAllTransaksi()
+
+                // Hitung Total Pendapatan
+                val total = list.sumOf { it.total_bayar }
+                val count = list.size
+
+                // Ambil 5 transaksi terbaru
+                val recent = list.takeLast(5).reversed()
+
+                dashboardUiState = DashboardUiState.Success(total, count, recent)
             } catch (e: Exception) {
-                homeUiState = HomeUiState.Error
+                dashboardUiState = DashboardUiState.Error
             }
         }
     }
 
-    // Hapus Sayur
+    // 2. Load Data Produk
+    fun loadProduk() {
+        viewModelScope.launch {
+            produkUiState = ProdukUiState.Loading
+            try {
+                val listSayur = repository.getSayur()
+                produkUiState = ProdukUiState.Success(listSayur)
+            } catch (e: Exception) {
+                produkUiState = ProdukUiState.Error
+            }
+        }
+    }
+
+    // 3. Hapus Produk
     fun deleteSayur(id: Int) {
         viewModelScope.launch {
             try {
                 repository.deleteSayur(id)
-                getSayur() // Refresh data setelah hapus
+                loadProduk() // Refresh list setelah hapus
             } catch (e: Exception) {
-                // Handle error jika perlu
+                // Handle Error
+            }
+        }
+    }
+
+    // 4. Update Status Transaksi (Pending -> Proses -> Selesai)
+    fun updateStatusTransaksi(idTransaksi: String, newStatus: String) {
+        viewModelScope.launch {
+            try {
+                repository.updateStatusTransaksi(idTransaksi, newStatus)
+                // Refresh data dashboard agar status di UI berubah
+                loadDashboard()
+            } catch (e: Exception) {
+                // Handle Error
             }
         }
     }

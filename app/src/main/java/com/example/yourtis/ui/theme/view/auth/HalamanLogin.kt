@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.yourtis.R
 import com.example.yourtis.modeldata.User
@@ -49,51 +50,48 @@ import com.example.yourtis.ui.theme.viewmodel.PenyediaViewModel
 fun HalamanLogin(
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = viewModel(factory = PenyediaViewModel.Factory),
-    onLoginSuccess: (User) -> Unit, // Callback navigasi jika login sukses
-    onNavigateToRegister: () -> Unit // Callback navigasi ke halaman register
+    onLoginSuccess: (User) -> Unit,
+    onNavigateToRegister: () -> Unit
 ) {
-    // State lokal untuk input form
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
     // Memantau status login dari ViewModel
-    val loginState = viewModel.loginUiState
+    val loginState = viewModel.uiState // PERBAIKAN: Gunakan 'uiState' sesuai AuthViewModel baru
 
-    // Efek Samping: Jika login sukses, panggil callback navigasi
+    // Efek Samping: Jika login sukses
     LaunchedEffect(loginState) {
-        if (loginState is LoginUiState.Success && viewModel.currentUser != null) {
-            onLoginSuccess(viewModel.currentUser!!)
-            viewModel.resetState() // Reset agar tidak auto-login jika kembali ke layar ini
+        if (loginState is LoginUiState.Success) {
+            onLoginSuccess(loginState.user) // PERBAIKAN: Data user diambil dari state Success
+            viewModel.resetState()
         }
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(dimensionResource(id = R.dimen.padding_medium)),
+            .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Judul & Slogan Aplikasi
+        // 1. Judul & Slogan
         Text(
-            text = stringResource(id = R.string.app_name),
+            text = "YourTis",
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = stringResource(id = R.string.app_slogan),
+            text = "saYour prakTis",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = dimensionResource(id = R.dimen.padding_extra_large))
+            modifier = Modifier.padding(bottom = 32.dp)
         )
 
-        // 2. Form Input Email
+        // 2. Form Input Email (Langsung bind ke ViewModel)
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text(stringResource(id = R.string.email)) },
-            placeholder = { Text(stringResource(id = R.string.hint_email)) },
+            value = viewModel.email, // PERBAIKAN: Gunakan email dari ViewModel
+            onValueChange = { viewModel.email = it },
+            label = { Text("Email") },
+            placeholder = { Text("Masukkan email anda") },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
@@ -102,13 +100,13 @@ fun HalamanLogin(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.padding_small)))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // 3. Form Input Password
+        // 3. Form Input Password (Langsung bind ke ViewModel)
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text(stringResource(id = R.string.password)) },
+            value = viewModel.password, // PERBAIKAN: Gunakan password dari ViewModel
+            onValueChange = { viewModel.password = it },
+            label = { Text("Password") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -124,46 +122,40 @@ fun HalamanLogin(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.padding_medium)))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Pesan Error (Jika ada)
+        // 4. Pesan Error (Jika status Error)
         if (loginState is LoginUiState.Error) {
             Text(
-                text = viewModel.errorMessage,
+                text = "Login Gagal: Email atau sandi salah", // PERBAIKAN: Pesan manual/statik
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = dimensionResource(id = R.dimen.padding_small))
+                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
 
-        // 5. Tombol Login & Loading Indicator
+        // 5. Tombol Login & Loading
         if (loginState is LoginUiState.Loading) {
             CircularProgressIndicator()
         } else {
             Button(
-                onClick = { viewModel.login(email, password) },
+                onClick = { viewModel.login() }, // PERBAIKAN: login() tidak butuh argumen lagi
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(dimensionResource(id = R.dimen.input_field_height)),
+                    .height(50.dp),
                 shape = MaterialTheme.shapes.medium
             ) {
-                Text(text = stringResource(id = R.string.btn_login))
+                Text(text = "Login")
             }
         }
 
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.padding_medium)))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // 6. Tombol Navigasi ke Register
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = dimensionResource(id = R.dimen.padding_small))
-        ) {
-            Text(text = stringResource(id = R.string.text_belum_punya_akun))
+        // 6. Navigasi ke Register
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = "Belum punya akun?")
             TextButton(onClick = onNavigateToRegister) {
-                Text(
-                    text = stringResource(id = R.string.btn_register),
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = "Daftar Akun Baru", fontWeight = FontWeight.Bold)
             }
         }
     }

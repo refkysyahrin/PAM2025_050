@@ -11,9 +11,9 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 
-// Status UI untuk Login & Register
+// State UI untuk Login/Register
 sealed interface LoginUiState {
-    object Success : LoginUiState
+    data class Success(val user: User) : LoginUiState
     object Error : LoginUiState
     object Loading : LoginUiState
     object Idle : LoginUiState
@@ -21,79 +21,73 @@ sealed interface LoginUiState {
 
 class AuthViewModel(private val repository: YourTisRepository) : ViewModel() {
 
-    var loginUiState: LoginUiState by mutableStateOf(LoginUiState.Idle)
+    var uiState: LoginUiState by mutableStateOf(LoginUiState.Idle)
         private set
 
-    var currentUser: User? by mutableStateOf(null)
-        private set
+    // State untuk Form Input
+    var username by mutableStateOf("")
+    var email by mutableStateOf("")
+    var password by mutableStateOf("")
+    var noHp by mutableStateOf("")
+    var alamat by mutableStateOf("")
+    var role by mutableStateOf("Pembeli") // Default role, bisa diubah via RadioButton
 
-    var errorMessage: String by mutableStateOf("")
-        private set
-
-    fun login(email: String, kataSandi: String) {
+    // Fungsi Login
+    fun login() {
         viewModelScope.launch {
-            loginUiState = LoginUiState.Loading
+            uiState = LoginUiState.Loading
             try {
-                val response = repository.login(email, kataSandi)
-                currentUser = response.user
-                loginUiState = LoginUiState.Success
-            } catch (e: IOException) {
-                loginUiState = LoginUiState.Error
-                errorMessage = "Jaringan error: Pastikan server nyala"
-            } catch (e: HttpException) {
-                loginUiState = LoginUiState.Error
-                errorMessage = "Login gagal: Email atau sandi salah"
+                val response = repository.login(email, password)
+
+                if (response.data != null) {
+                    // Login Berhasil
+                    uiState = LoginUiState.Success(response.data)
+                } else {
+                    // Login Gagal (Response OK tapi data null)
+                    uiState = LoginUiState.Error
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                uiState = LoginUiState.Error
             }
         }
     }
 
-    // FUNGSI REGISTER LENGKAP
-    fun register(
-        username: String,
-        email: String,
-        sandi: String,
-        peran: String,
-        noHp: String,
-        alamat: String
-    ) {
+    // Fungsi Register
+    fun register(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            loginUiState = LoginUiState.Loading
+            uiState = LoginUiState.Loading
             try {
-                // Buat objek User (tanpa password, karena di model User.kt tdk ada password)
                 val newUser = User(
-                    id_user = 0, // 0 karena auto-increment
+                    id_user = 0, // ID akan di-generate oleh database
                     username = username,
                     email = email,
-                    role = peran,
+                    role = role,
                     no_hp = noHp,
                     alamat = alamat
                 )
 
-                // Kirim user + sandi ke repository
-                repository.register(newUser, sandi)
+                // Kirim data ke repository
+                repository.register(newUser, password)
 
-                loginUiState = LoginUiState.Success
-            } catch (e: IOException) {
-                loginUiState = LoginUiState.Error
-                errorMessage = "Gagal koneksi server"
-            } catch (e: HttpException) {
-                loginUiState = LoginUiState.Error
-                // Ambil pesan error dari response body jika memungkinkan
-                errorMessage = "Gagal Daftar: Email mungkin sudah dipakai"
+                // Jika tidak ada error (Exception), berarti sukses
+                uiState = LoginUiState.Success(newUser)
+                onSuccess() // Callback navigasi balik ke login
+            } catch (e: Exception) {
+                e.printStackTrace()
+                uiState = LoginUiState.Error
             }
         }
     }
 
+    // Reset Form (Dipanggil saat pindah halaman atau logout)
     fun resetState() {
-        loginUiState = LoginUiState.Idle
-        // Jangan reset currentUser di sini agar data user tetap ada setelah login
-        errorMessage = ""
-    }
-
-    // Fungsi khusus logout total
-    fun logout() {
-        loginUiState = LoginUiState.Idle
-        currentUser = null
-        errorMessage = ""
+        uiState = LoginUiState.Idle
+        username = ""
+        email = ""
+        password = ""
+        noHp = ""
+        alamat = ""
+        role = "Pembeli"
     }
 }

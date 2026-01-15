@@ -1,15 +1,18 @@
-package com.example.yourtis.ui.view.pembeli // PERBAIKAN: Package disesuaikan
+package com.example.yourtis.ui.view.pembeli
 
-// HAPUS: import android.R (Ini penyebab error resource merah)
-
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items // PENTING: Wajib import ini manual
 import androidx.compose.material.icons.Icons
@@ -20,6 +23,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -32,10 +36,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -51,130 +57,73 @@ import com.example.yourtis.ui.theme.viewmodel.PenyediaViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanKatalog(
-    onLogout: () -> Unit,
     onNavigateToCart: () -> Unit,
+    onNavigateToDetail: (Int) -> Unit, // Tambahkan parameter navigasi detail
+    onLogout: () -> Unit,
     viewModel: PembeliViewModel = viewModel(factory = PenyediaViewModel.Factory)
 ) {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-
-    // Hitung total item di keranjang untuk Badge
-    val cartCount = viewModel.cartItems.sumOf { it.qty }
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Katalog Sayur") },
                 actions = {
-                    // Ikon Keranjang dengan Badge
                     IconButton(onClick = onNavigateToCart) {
-                        BadgedBox(
-                            badge = {
-                                if (cartCount > 0) {
-                                    Badge { Text(cartCount.toString()) }
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = "Keranjang")
-                        }
+                        Icon(Icons.Default.ShoppingCart, contentDescription = "Keranjang")
                     }
-                    // Tombol Logout
-                    TextButton(onClick = onLogout) {
-                        Text("Keluar")
-                    }
-                },
-                scrollBehavior = scrollBehavior
+                    TextButton(onClick = onLogout) { Text("Keluar", color = Color.Red) }
+                }
             )
         }
     ) { innerPadding ->
-
         when (val state = viewModel.homeUiState) {
-            is HomeUiState.Loading -> LoadingScreen(modifier = Modifier.padding(innerPadding))
-            is HomeUiState.Success -> ListKatalog(
-                listSayur = state.sayur,
-                modifier = Modifier.padding(innerPadding),
-                onAddToCart = { sayur -> viewModel.addToCart(sayur) }
-            )
-            is HomeUiState.Error -> ErrorScreen(
-                retryAction = { viewModel.getSayur() },
-                modifier = Modifier.padding(innerPadding)
-            )
-        }
-    }
-}
-
-@Composable
-fun ListKatalog(
-    listSayur: List<Sayur>,
-    modifier: Modifier = Modifier,
-    onAddToCart: (Sayur) -> Unit
-) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // PERBAIKAN: items sudah dikenali karena import androidx.compose.foundation.lazy.items
-        items(listSayur) { sayur ->
-            CardKatalog(sayur = sayur, onAdd = onAddToCart)
-        }
-    }
-}
-
-@Composable
-fun CardKatalog(sayur: Sayur, onAdd: (Sayur) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column {
-            // Gambar Produk
-            val imageUrl = sayur.gambar_url?.replace("localhost", "10.0.2.2")
-
-            AsyncImage(
-                model = ImageRequest.Builder(context = LocalContext.current)
-                    .data(imageUrl)
-                    .crossfade(true)
-                    .build(),
-                // PERBAIKAN: Resource diambil dari R (com.example.yourtis.R) bukan android.R
-                error = painterResource(R.drawable.ic_launcher_foreground),
-                placeholder = painterResource(R.drawable.ic_launcher_foreground),
-                contentDescription = sayur.nama_sayur,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(150.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = sayur.nama_sayur,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Rp ${sayur.harga} / kg",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Sisa Stok: ${sayur.stok}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-
-                // Tombol Tambah ke Keranjang
-                FilledTonalIconButton(
-                    onClick = { onAdd(sayur) },
-                    enabled = sayur.stok > 0
+            is HomeUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+            is HomeUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Gagal memuat data") }
+            is HomeUiState.Success -> {
+                LazyColumn(
+                    modifier = Modifier.padding(innerPadding).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Default.AddShoppingCart, contentDescription = "Beli")
+                    items(state.sayur) { sayur ->
+                        ItemKatalog(
+                            sayur = sayur,
+                            onAddToCart = { viewModel.addToCart(sayur) },
+                            onClickDetail = { onNavigateToDetail(sayur.id_sayur) } // Navigasi saat item diklik
+                        )
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ItemKatalog(sayur: Sayur, onAddToCart: () -> Unit, onClickDetail: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClickDetail() },
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = sayur.gambar_url?.replace("localhost", "10.0.2.2"),
+                contentDescription = null,
+                modifier = Modifier.size(100.dp),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = sayur.nama_sayur, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = "Rp ${sayur.harga} / kg", color = Color(0xFF2E7D32))
+
+                // MENAMPILKAN DESKRIPSI SINGKAT
+                Text(
+                    text = sayur.deskripsi,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(onClick = onAddToCart) {
+                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = Color(0xFF2E7D32))
             }
         }
     }

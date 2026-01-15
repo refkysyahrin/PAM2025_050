@@ -42,24 +42,31 @@ import com.example.yourtis.ui.theme.viewmodel.EntryViewModel
 import com.example.yourtis.ui.theme.viewmodel.LoginUiState
 import com.example.yourtis.ui.theme.viewmodel.PenyediaViewModel
 import android.net.Uri
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanEntrySayur(
     navigateBack: () -> Unit,
+    idSayur: Int? = null, // Parameter ID (Nullable)
     viewModel: EntryViewModel = viewModel(factory = PenyediaViewModel.Factory)
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val uiState = viewModel.uiState
 
-    // Launcher untuk buka Galeri
+    // Jika mode edit, load data lama
+    LaunchedEffect(idSayur) {
+        if (idSayur != null) {
+            viewModel.loadDataForEdit(idSayur)
+        }
+    }
+
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri: Uri? -> viewModel.imageUri = uri }
     )
 
-    // Efek samping: Jika sukses simpan, kembali ke dashboard
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Success) {
             navigateBack()
@@ -69,10 +76,11 @@ fun HalamanEntrySayur(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tambah Sayur Baru") },
+                // Judul dinamis sesuai mode
+                title = { Text(if (idSayur == null) "Tambah Sayur Baru" else "Edit Sayur") },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Kembali")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 }
             )
@@ -85,13 +93,12 @@ fun HalamanEntrySayur(
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Area Upload Gambar
+            // Area Upload Gambar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
                     .clickable {
-                        // Buka Galeri saat diklik
                         singlePhotoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
@@ -99,22 +106,25 @@ fun HalamanEntrySayur(
                 contentAlignment = Alignment.Center
             ) {
                 if (viewModel.imageUri != null) {
-                    // Tampilkan Preview Gambar
+                    // Gambar baru yang dipilih user
                     AsyncImage(
                         model = viewModel.imageUri,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-                } else {
-                    // Tampilkan Placeholder
+                } else if (idSayur != null) {
+                    // Mode Edit: Tampilkan teks panduan (User tidak wajib ganti foto)
+                    // (Idealnya tampilkan foto lama dari URL, tapi di EntryViewModel kita belum simpan URL lama ke state khusus image)
+                    // Untuk sederhananya, tampilkan placeholder dengan pesan
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.Image, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text("Foto lama tersimpan. Tap untuk ganti.")
+                    }
+                } else {
+                    // Mode Tambah: Placeholder kosong
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Image, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
                         Text("Tap untuk upload foto")
                     }
                 }
@@ -122,7 +132,7 @@ fun HalamanEntrySayur(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Form Input
+            // Form Input
             OutlinedTextField(
                 value = viewModel.namaSayur,
                 onValueChange = { viewModel.namaSayur = it },
@@ -162,16 +172,16 @@ fun HalamanEntrySayur(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. Tombol Simpan
             Button(
-                onClick = { viewModel.insertSayur(context) },
+                onClick = { viewModel.saveSayur(context) },
                 enabled = uiState !is LoginUiState.Loading,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (uiState is LoginUiState.Loading) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Text("Simpan Produk")
+                    // Teks tombol dinamis
+                    Text(if (idSayur == null) "Simpan Produk" else "Update Produk")
                 }
             }
         }
