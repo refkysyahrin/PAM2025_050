@@ -29,8 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,7 +36,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.yourtis.R
 import com.example.yourtis.modeldata.User
 import com.example.yourtis.ui.theme.viewmodel.AuthViewModel
 import com.example.yourtis.ui.theme.viewmodel.LoginUiState
@@ -54,14 +51,11 @@ fun HalamanLogin(
     onNavigateToRegister: () -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    val loginState = viewModel.uiState
 
-    // Memantau status login dari ViewModel
-    val loginState = viewModel.uiState // PERBAIKAN: Gunakan 'uiState' sesuai AuthViewModel baru
-
-    // Efek Samping: Jika login sukses
     LaunchedEffect(loginState) {
         if (loginState is LoginUiState.Success) {
-            onLoginSuccess(loginState.user) // PERBAIKAN: Data user diambil dari state Success
+            onLoginSuccess(loginState.user)
             viewModel.resetState()
         }
     }
@@ -73,7 +67,6 @@ fun HalamanLogin(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Judul & Slogan
         Text(
             text = "YourTis",
             style = MaterialTheme.typography.displayMedium,
@@ -86,9 +79,8 @@ fun HalamanLogin(
             modifier = Modifier.padding(bottom = 32.dp)
         )
 
-        // 2. Form Input Email (Langsung bind ke ViewModel)
         OutlinedTextField(
-            value = viewModel.email, // PERBAIKAN: Gunakan email dari ViewModel
+            value = viewModel.email,
             onValueChange = { viewModel.email = it },
             label = { Text("Email") },
             placeholder = { Text("Masukkan email anda") },
@@ -102,9 +94,8 @@ fun HalamanLogin(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 3. Form Input Password (Langsung bind ke ViewModel)
         OutlinedTextField(
-            value = viewModel.password, // PERBAIKAN: Gunakan password dari ViewModel
+            value = viewModel.password,
             onValueChange = { viewModel.password = it },
             label = { Text("Password") },
             singleLine = true,
@@ -124,22 +115,21 @@ fun HalamanLogin(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Pesan Error (Jika status Error)
+        // MENAMPILKAN PESAN ERROR DINAMIS
         if (loginState is LoginUiState.Error) {
             Text(
-                text = "Login Gagal: Email atau sandi salah", // PERBAIKAN: Pesan manual/statik
+                text = loginState.message,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
 
-        // 5. Tombol Login & Loading
         if (loginState is LoginUiState.Loading) {
             CircularProgressIndicator()
         } else {
             Button(
-                onClick = { viewModel.login() }, // PERBAIKAN: login() tidak butuh argumen lagi
+                onClick = { viewModel.login() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
@@ -151,7 +141,6 @@ fun HalamanLogin(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 6. Navigasi ke Register
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "Belum punya akun?")
             TextButton(onClick = onNavigateToRegister) {
