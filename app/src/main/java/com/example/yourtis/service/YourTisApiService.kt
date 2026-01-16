@@ -1,5 +1,6 @@
 package com.example.yourtis.service
 
+import com.example.yourtis.modeldata.DetailTransaksi
 import com.example.yourtis.modeldata.LoginResponse
 import com.example.yourtis.modeldata.Sayur
 import com.example.yourtis.modeldata.Transaksi
@@ -59,7 +60,6 @@ interface YourTisApiService {
     suspend fun deleteSayur(@Path("id") id: Int): Map<String, Any>
 
     // --- TRANSAKSI ---
-    // Endpoint Checkout untuk mengirim data pesanan dan alamat pengiriman
     @POST("api/transactions/checkout")
     suspend fun checkout(@Body transactionData: Map<String, Any>): Response<ResponseBody>
 
@@ -69,6 +69,10 @@ interface YourTisApiService {
     // Mendapatkan riwayat transaksi spesifik milik satu pembeli
     @GET("api/transactions/user/{id_pembeli}")
     suspend fun getTransaksiByPembeli(@Path("id_pembeli") idPembeli: Int): List<Transaksi>
+
+    // Mendapatkan item-item di dalam satu transaksi (Detail Items)
+    @GET("api/transactions/{id}/items")
+    suspend fun getTransactionItems(@Path("id") idTransaksi: Int): List<DetailTransaksi>
 
     @PUT("api/transactions/{id}")
     suspend fun updateStatusTransaksi(

@@ -11,5 +11,7 @@ data class Transaksi(
     val metode_bayar: String,
     val status: String,
     val tgl_transaksi: String,
-    val alamat_pengiriman: String
+    val alamat_pengiriman: String,
+    // Tambahkan list items agar jika backend mengirimkan data nested langsung terbaca
+    val items: List<DetailTransaksi>? = null
 )

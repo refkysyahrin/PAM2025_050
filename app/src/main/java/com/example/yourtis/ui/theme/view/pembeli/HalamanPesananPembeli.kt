@@ -21,6 +21,7 @@ import com.example.yourtis.ui.theme.viewmodel.PembeliViewModel
 @Composable
 fun HalamanPesananPembeli(
     onNavigateBack: () -> Unit,
+    onNavigateToDetail: (Int) -> Unit,
     viewModel: PembeliViewModel
 ) {
     val listTransaksi = viewModel.listTransaksi
@@ -31,7 +32,6 @@ fun HalamanPesananPembeli(
     val refreshData = {
         isRefreshing = true
         viewModel.getTransactions()
-        // Simulasi delay sedikit agar animasi refresh terlihat smooth
         isRefreshing = false
     }
 
@@ -78,10 +78,9 @@ fun HalamanPesananPembeli(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(listTransaksi) { trx ->
-                        // Menampilkan Item Transaksi
                         ItemTransaksiLengkap(
                             trx = trx,
-                            onClick = { /* Opsional: Bisa arahkan ke detail item jika diperlukan */ }
+                            onClick = { onNavigateToDetail(trx.id_transaksi) }
                         )
                     }
                 }

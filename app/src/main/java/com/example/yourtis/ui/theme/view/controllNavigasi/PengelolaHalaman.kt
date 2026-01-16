@@ -24,14 +24,12 @@ import com.example.yourtis.ui.view.pembeli.HalamanKatalog
 
 @Composable
 fun PengelolaHalaman(navController: NavHostController = rememberNavController()) {
-    // Shared ViewModels menggunakan Factory Penyedia
     val pembeliVM: PembeliViewModel = viewModel(factory = PenyediaViewModel.Factory)
     val petaniVM: PetaniViewModel = viewModel(factory = PenyediaViewModel.Factory)
     val entryVM: EntryViewModel = viewModel(factory = PenyediaViewModel.Factory)
 
     NavHost(navController = navController, startDestination = "login") {
 
-        // --- AUTHENTICATION ---
         composable("login") {
             HalamanLogin(
                 onLoginSuccess = { user ->
@@ -41,7 +39,6 @@ fun PengelolaHalaman(navController: NavHostController = rememberNavController())
                             popUpTo("login") { inclusive = true }
                         }
                     } else {
-                        // Simpan ID User ke ViewModel agar data user tetap ada
                         pembeliVM.currentUserId = user.id_user
                         navController.navigate("home_pembeli") {
                             popUpTo("login") { inclusive = true }
@@ -59,7 +56,6 @@ fun PengelolaHalaman(navController: NavHostController = rememberNavController())
             )
         }
 
-        // --- PETANI FLOW ---
         composable("home_petani") {
             HalamanHomePetani(
                 onLogout = {
@@ -95,7 +91,6 @@ fun PengelolaHalaman(navController: NavHostController = rememberNavController())
             HalamanLaporan(viewModel = petaniVM, onNavigateBack = { navController.popBackStack() })
         }
 
-        // --- PEMBELI FLOW ---
         composable("home_pembeli") {
             HalamanKatalog(
                 viewModel = pembeliVM,
@@ -141,13 +136,27 @@ fun PengelolaHalaman(navController: NavHostController = rememberNavController())
             )
         }
 
-        // ✅ PERBAIKAN: Gunakan HalamanPesananPembeli agar terpisah per user
         composable("pesanan_pembeli") {
             HalamanPesananPembeli(
                 viewModel = pembeliVM,
                 onNavigateBack = {
                     navController.popBackStack("home_pembeli", inclusive = false)
+                },
+                onNavigateToDetail = { id ->
+                    navController.navigate("detail_transaksi/$id")
                 }
+            )
+        }
+
+        composable(
+            route = "detail_transaksi/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            HalamanDetailTransaksi(
+                idTransaksi = id,
+                viewModel = pembeliVM,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

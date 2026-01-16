@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.yourtis.modeldata.DetailTransaksi
 import com.example.yourtis.modeldata.Sayur
 import com.example.yourtis.modeldata.Transaksi
 import com.example.yourtis.modeldata.User
@@ -35,7 +36,7 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
     var homeUiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
         private set
 
-    // State untuk menyimpan list riwayat transaksi (Memperbaiki Error Laporan)
+    // State untuk menyimpan list riwayat transaksi
     var listTransaksi by mutableStateOf(listOf<Transaksi>())
         private set
 
@@ -64,18 +65,27 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         }
     }
 
-    // Mengambil riwayat transaksi milik pembeli (Menghilangkan Unresolved Reference)
+    // Mengambil riwayat transaksi milik pembeli
     fun getTransactions() {
         if (currentUserId == 0) return
         viewModelScope.launch {
             try {
-                // Memanggil repository untuk filter transaksi berdasarkan id_pembeli
                 val response = repository.getTransaksiByPembeli(currentUserId)
                 listTransaksi = response
             } catch (e: Exception) {
                 Log.e("VM_ERROR", "Gagal mengambil riwayat: ${e.message}")
                 listTransaksi = emptyList()
             }
+        }
+    }
+
+    // Mengambil item-item detail dari satu transaksi spesifik
+    suspend fun getTransactionDetails(id: Int): List<DetailTransaksi> {
+        return try {
+            repository.getTransactionItems(id)
+        } catch (e: Exception) {
+            Log.e("VM_ERROR", "Gagal mengambil detail items: ${e.message}")
+            emptyList()
         }
     }
 
@@ -98,12 +108,10 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         val index = _cartItems.indexOfFirst { it.sayur.id_sayur == sayur.id_sayur }
         if (index != -1) {
             val item = _cartItems[index]
-            // Validasi stok: Jumlah pembelian tidak boleh melebihi stok tersedia
             if (item.qty < sayur.stok) {
                 _cartItems[index] = item.copy(qty = item.qty + 1)
             }
         } else {
-            // Menambahkan barang baru ke keranjang
             _cartItems.add(CartItem(sayur, 1))
         }
     }
@@ -126,7 +134,6 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
 
     // Memproses data pesanan ke backend
     fun processCheckout(alamat: String, metodeKirim: String, metodeBayar: String) {
-        // Validasi identitas user dan isi form (REQ-TRX-01)
         if (currentUserId == 0 || alamat.isBlank()) {
             Log.e("CHECKOUT_ERROR", "Data tidak lengkap atau User belum login.")
             checkoutUiState = LoginUiState.Error
@@ -136,7 +143,6 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         viewModelScope.launch {
             checkoutUiState = LoginUiState.Loading
             try {
-                // Menyiapkan data item detail transaksi
                 val itemsList = _cartItems.map {
                     mapOf(
                         "id_sayur" to it.sayur.id_sayur,
@@ -145,24 +151,20 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
                     )
                 }
 
-                // Payload data transaksi sesuai kamus data
                 val transactionData = mapOf(
                     "id_pembeli" to currentUserId,
                     "total_bayar" to calculateTotal(),
-                    "metode_kirim" to metodeKirim, // Pickup atau Diantar
-                    "metode_bayar" to metodeBayar, // Transfer atau COD
-                    "alamat_pengiriman" to alamat, // Field wajib database
+                    "metode_kirim" to metodeKirim,
+                    "metode_bayar" to metodeBayar,
+                    "alamat_pengiriman" to alamat,
                     "items" to itemsList
                 )
 
-                // Mengirim data ke repository (API POST)
                 repository.checkout(transactionData)
 
-                // Jika sukses, bersihkan keranjang dan update stok katalog (REQ-TRX-04)
                 _cartItems.clear()
                 getSayur()
 
-                // Navigasi sukses
                 checkoutUiState = LoginUiState.Success(User(id_user = currentUserId, "", "", "", "", ""))
                 Log.d("CHECKOUT", "Pesanan Berhasil Disimpan.")
 
