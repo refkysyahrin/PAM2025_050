@@ -104,19 +104,21 @@ class EntryViewModel(private val repository: YourTisRepository) : ViewModel() {
                     repository.insertSayur(idPetaniReq, namaReq, hargaReq, stokReq, descReq, imagePart!!)
 
                     Toast.makeText(context, "Berhasil menambah produk!", Toast.LENGTH_SHORT).show()
-                    uiState = LoginUiState.Success(User(currentPetaniId, "", "", "", "", ""))
                 } else {
                     // MODE UPDATE
                     repository.updateSayur(currentIdSayur!!, namaReq, hargaReq, stokReq, descReq, imagePart)
 
                     Toast.makeText(context, "Berhasil update produk!", Toast.LENGTH_SHORT).show()
-                    uiState = LoginUiState.Success(User(currentPetaniId, "", "", "", "", ""))
                 }
+                
+                // Set success state setelah operasi berhasil
+                uiState = LoginUiState.Success(User(currentPetaniId, "", "", "", "", ""))
 
             } catch (e: Exception) {
                 Log.e("EntryViewModel", "Error Simpan: ${e.message}")
                 Toast.makeText(context, "Gagal menyimpan: ${e.message}", Toast.LENGTH_LONG).show()
-                uiState = LoginUiState.Error
+                // FIXED: Menggunakan constructor Error(message) sesuai definisi baru di AuthViewModel
+                uiState = LoginUiState.Error(e.message ?: "Terjadi kesalahan saat menyimpan")
             }
         }
     }
