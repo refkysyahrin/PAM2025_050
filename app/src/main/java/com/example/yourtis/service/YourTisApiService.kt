@@ -17,6 +17,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 
+
 interface YourTisApiService {
 
     // --- AUTHENTICATION ---
@@ -30,7 +31,6 @@ interface YourTisApiService {
     @GET("api/products")
     suspend fun getAllSayur(): List<Sayur>
 
-    // Mendapatkan detail produk spesifik untuk Halaman Detail
     @GET("api/products/{id}")
     suspend fun getSayurById(@Path("id") id: Int): Sayur
 
@@ -61,17 +61,16 @@ interface YourTisApiService {
 
     // --- TRANSAKSI ---
     @POST("api/transactions/checkout")
-    suspend fun checkout(@Body transactionData: Map<String, Any>): Response<ResponseBody>
+    suspend fun checkout(@Body transactionData: Map<String, @JvmSuppressWildcards Any>): Response<ResponseBody>
 
     @GET("api/transactions")
     suspend fun getAllTransaksi(): List<Transaksi>
 
-    // Mendapatkan riwayat transaksi spesifik milik satu pembeli
     @GET("api/transactions/user/{id_pembeli}")
     suspend fun getTransaksiByPembeli(@Path("id_pembeli") idPembeli: Int): List<Transaksi>
 
-    // Mendapatkan item-item di dalam satu transaksi (Detail Items)
-    @GET("api/transactions/{id}/items")
+    // SINKRONISASI: Disesuaikan dengan rute backend 'api/transactions/detail/:id'
+    @GET("api/transactions/detail/{id}")
     suspend fun getTransactionItems(@Path("id") idTransaksi: Int): List<DetailTransaksi>
 
     @PUT("api/transactions/{id}")
