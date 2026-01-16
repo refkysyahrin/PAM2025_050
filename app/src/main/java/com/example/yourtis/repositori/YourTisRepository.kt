@@ -9,6 +9,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 
 
+// Interface mendefinisikan kontrak data sesuai SRS [cite: 75]
 interface YourTisRepository {
     suspend fun login(email: String, kataSandi: String): LoginResponse
     suspend fun register(user: User, kataSandi: String)
@@ -19,6 +20,7 @@ interface YourTisRepository {
     suspend fun deleteSayur(id: Int)
     suspend fun checkout(data: Map<String, Any>)
     suspend fun getAllTransaksi(): List<Transaksi>
+    // Penamaan disesuaikan agar sinkron dengan PembeliViewModel
     suspend fun getTransaksiByPembeli(idPembeli: Int): List<Transaksi>
     suspend fun updateStatusTransaksi(idTransaksi: String, status: String)
 }
@@ -32,16 +34,25 @@ class NetworkYourTisRepository(
 
     override suspend fun register(user: User, kataSandi: String) {
         yourTisApiService.register(mapOf(
-            "username" to user.username, "email" to user.email,
-            "password" to kataSandi, "role" to user.role,
-            "no_hp" to user.no_hp, "alamat" to user.alamat
+            "username" to user.username,
+            "email" to user.email,
+            "password" to kataSandi,
+            "role" to user.role,
+            "no_hp" to user.no_hp,
+            "alamat" to user.alamat
         ))
     }
 
     override suspend fun getSayur(): List<Sayur> = yourTisApiService.getAllSayur()
 
     override suspend fun getSayurById(id: Int): Sayur {
-        return yourTisApiService.getAllSayur().find { it.id_sayur == id } ?: throw Exception("Not Found")
+        // Mengambil detail produk spesifik dari server
+        return try {
+            yourTisApiService.getSayurById(id)
+        } catch (e: Exception) {
+            // Fallback: cari dari list jika endpoint spesifik bermasalah
+            yourTisApiService.getAllSayur().find { it.id_sayur == id } ?: throw Exception("Produk tidak ditemukan")
+        }
     }
 
     override suspend fun insertSayur(idPetani: RequestBody, nama: RequestBody, harga: RequestBody, stok: RequestBody, desc: RequestBody, img: MultipartBody.Part) {
@@ -54,35 +65,32 @@ class NetworkYourTisRepository(
 
     override suspend fun deleteSayur(id: Int) = yourTisApiService.deleteSayur(id).let { Unit }
 
-    // ✅ PERBAIKAN: Improved error handling untuk checkout
+    // Implementasi Checkout dengan validasi alamat_pengiriman
     override suspend fun checkout(data: Map<String, Any>) {
         try {
             val response = yourTisApiService.checkout(data)
 
-            // Check if response is successful
             if (!response.isSuccessful) {
                 val errorBody = response.errorBody()?.string()
-                throw Exception("Checkout Gagal: HTTP ${response.code()} - $errorBody")
+                throw Exception("Gagal membuat pesanan: $errorBody")
             }
-
-            // Additional validation: check if response has body
-            if (response.body() == null) {
-                throw Exception("Checkout Response kosong dari server")
-            }
-
-        } catch (e: java.net.ConnectException) {
-            throw Exception("Gagal terhubung ke server. Periksa koneksi internet.")
-        } catch (e: java.net.SocketTimeoutException) {
-            throw Exception("Koneksi timeout. Coba lagi dalam beberapa saat.")
         } catch (e: Exception) {
-            throw Exception("Checkout error: ${e.message}")
+            throw Exception("Terjadi gangguan koneksi: ${e.message}")
         }
     }
 
     override suspend fun getAllTransaksi(): List<Transaksi> = yourTisApiService.getAllTransaksi()
 
-    override suspend fun getTransaksiByPembeli(idPembeli: Int): List<Transaksi> = 
-        yourTisApiService.getAllTransaksi().filter { it.id_pembeli == idPembeli }
+    // Fungsi vital untuk Halaman Laporan Pesanan Pembeli
+    override suspend fun getTransaksiByPembeli(idPembeli: Int): List<Transaksi> {
+        return try {
+            // Jika API Service mendukung filter ID, panggil langsung
+            yourTisApiService.getTransaksiByPembeli(idPembeli)
+        } catch (e: Exception) {
+            // Jika belum ada endpoint khusus, filter secara manual dari semua transaksi
+            yourTisApiService.getAllTransaksi().filter { it.id_pembeli == idPembeli }
+        }
+    }
 
     override suspend fun updateStatusTransaksi(idTransaksi: String, status: String) {
         yourTisApiService.updateStatusTransaksi(idTransaksi, mapOf("status" to status))

@@ -128,7 +128,7 @@ fun ItemTransaksi(trx: Transaksi) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(trx.id_transaksi, fontWeight = FontWeight.Bold)
+                Text(text = "#${trx.id_transaksi}", fontWeight = FontWeight.Bold)
                 Text("Pembeli ID: ${trx.id_pembeli}", style = MaterialTheme.typography.bodySmall)
                 Text("Rp ${trx.total_bayar}", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
             }

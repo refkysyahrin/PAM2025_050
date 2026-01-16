@@ -10,10 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.yourtis.ui.theme.view.auth.HalamanLogin
 import com.example.yourtis.ui.theme.view.auth.HalamanRegister
-import com.example.yourtis.ui.theme.view.pembeli.HalamanCart
-import com.example.yourtis.ui.theme.view.pembeli.HalamanCheckout
-import com.example.yourtis.ui.theme.view.pembeli.HalamanDetailSayur
-import com.example.yourtis.ui.theme.view.pembeli.HalamanProfil
+import com.example.yourtis.ui.theme.view.pembeli.*
 import com.example.yourtis.ui.theme.view.petani.HalamanEntrySayur
 import com.example.yourtis.ui.theme.view.petani.HalamanHomePetani
 import com.example.yourtis.ui.theme.view.petani.HalamanKelolaProduk
@@ -95,17 +92,15 @@ fun PengelolaHalaman(navController: NavHostController = rememberNavController())
         }
 
         composable("laporan_transaksi_petani") {
-            // PERBAIKAN: Menggunakan petaniVM karena HalamanLaporan membutuhkan PetaniViewModel
             HalamanLaporan(viewModel = petaniVM, onNavigateBack = { navController.popBackStack() })
         }
 
-        // --- PEMBELI FLOW (KATALOG & BOTTOM NAVIGATION) ---
+        // --- PEMBELI FLOW ---
         composable("home_pembeli") {
             HalamanKatalog(
                 viewModel = pembeliVM,
                 onNavigateToCart = { navController.navigate("cart") },
                 onNavigateToDetail = { id -> navController.navigate("detail_sayur/$id") },
-                // Hubungkan fungsi navigasi bawah
                 onNavigateToPesanan = { navController.navigate("pesanan_pembeli") },
                 onNavigateToProfil = { navController.navigate("profil_pembeli") },
                 onLogout = {
@@ -139,24 +134,19 @@ fun PengelolaHalaman(navController: NavHostController = rememberNavController())
                 viewModel = pembeliVM,
                 onNavigateBack = { navController.popBackStack() },
                 onCheckoutSuccess = {
-                    navController.navigate("home_pembeli") {
-                        popUpTo("home_pembeli") { inclusive = true }
+                    navController.navigate("pesanan_pembeli") {
+                        popUpTo("home_pembeli") { inclusive = false }
                     }
                 }
             )
         }
 
-        // --- DESTINASI BARU NAVIGASI BAWAH PEMBELI ---
+        // ✅ PERBAIKAN: Gunakan HalamanPesananPembeli agar terpisah per user
         composable("pesanan_pembeli") {
-            // CATATAN: HalamanLaporan saat ini didesain untuk Petani (Admin).
-            // Jika ingin digunakan Pembeli, Anda perlu membuat versi Pembeli atau menyesuaikan ViewModelnya.
-            // Untuk sementara, agar tidak error compiler, kita gunakan petaniVM jika fiturnya sama atau hapus navigasi ini.
-            HalamanLaporan(
-                viewModel = petaniVM, 
+            HalamanPesananPembeli(
+                viewModel = pembeliVM,
                 onNavigateBack = {
-                    navController.navigate("home_pembeli") {
-                        popUpTo("home_pembeli") { inclusive = true }
-                    }
+                    navController.popBackStack("home_pembeli", inclusive = false)
                 }
             )
         }

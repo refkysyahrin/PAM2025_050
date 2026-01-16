@@ -24,16 +24,19 @@ import com.example.yourtis.ui.theme.viewmodel.DashboardUiState
 import com.example.yourtis.ui.theme.viewmodel.PenyediaViewModel
 import com.example.yourtis.ui.theme.viewmodel.PetaniViewModel
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HalamanLaporan(
     onNavigateBack: () -> Unit,
     viewModel: PetaniViewModel = viewModel(factory = PenyediaViewModel.Factory)
 ) {
+    // Memantau state dashboard untuk mendapatkan data transaksi real-time
     val state = viewModel.dashboardUiState
     val isRefreshing = state is DashboardUiState.Loading
-    val pullToRefreshState = rememberPullToRefreshState() // Definisikan state secara eksplisit
+    val pullToRefreshState = rememberPullToRefreshState()
 
+    // Memuat data dashboard saat halaman pertama kali dibuka
     LaunchedEffect(Unit) {
         viewModel.loadDashboard()
     }
@@ -58,13 +61,13 @@ fun HalamanLaporan(
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.loadDashboard() },
-            state = pullToRefreshState, // Pasang state ke Box
+            state = pullToRefreshState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
             indicator = {
                 PullToRefreshDefaults.Indicator(
-                    state = pullToRefreshState, // Gunakan state yang sama di sini
+                    state = pullToRefreshState,
                     isRefreshing = isRefreshing,
                     modifier = Modifier.align(Alignment.TopCenter),
                     containerColor = Color(0xFF2E7D32),
@@ -76,6 +79,7 @@ fun HalamanLaporan(
                 is DashboardUiState.Loading -> LoadingScreen(Modifier.fillMaxSize())
                 is DashboardUiState.Error -> ErrorScreen(onRetry = { viewModel.loadDashboard() }, modifier = Modifier.fillMaxSize())
                 is DashboardUiState.Success -> {
+                    // Filter list berdasarkan status pesanan untuk laporan
                     val filteredTransaksi = if (filterStatus == "Semua") {
                         state.listTransaksi
                     } else {
@@ -83,6 +87,7 @@ fun HalamanLaporan(
                     }
 
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Baris tombol filter status
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -90,7 +95,6 @@ fun HalamanLaporan(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             FilterButton("Semua", filterStatus == "Semua") { filterStatus = "Semua" }
-                            FilterButton("Pending", filterStatus == "Pending") { filterStatus = "Pending" }
                             FilterButton("Proses", filterStatus == "Proses") { filterStatus = "Proses" }
                             FilterButton("Selesai", filterStatus == "Selesai") { filterStatus = "Selesai" }
                         }
@@ -118,29 +122,27 @@ fun HalamanLaporan(
             }
         }
 
+        // Dialog konfirmasi untuk mengubah status pesanan (CRUD Status)
         if (showDialog && selectedTransaksi != null) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
                 title = { Text("Update Status Pesanan") },
-                text = { Text("ID: ${selectedTransaksi!!.id_transaksi}\nStatus: ${selectedTransaksi!!.status}") },
+                text = { Text("ID: #${selectedTransaksi!!.id_transaksi}\nStatus Saat Ini: ${selectedTransaksi!!.status}") },
                 confirmButton = {
                     Button(onClick = {
-                        viewModel.updateStatusTransaksi(selectedTransaksi!!.id_transaksi, "Selesai")
+                        // Memperbarui status transaksi menjadi 'Selesai' di database
+                        viewModel.updateStatusTransaksi(selectedTransaksi!!.id_transaksi.toString(), "Selesai")
                         showDialog = false
-                    }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) { Text("Selesai") }
+                    }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) { Text("Selesaikan") }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = {
-                        viewModel.updateStatusTransaksi(selectedTransaksi!!.id_transaksi, "Proses")
-                        showDialog = false
-                    }) { Text("Proses") }
+                    TextButton(onClick = { showDialog = false }) { Text("Batal", color = Color.Gray) }
                 }
             )
         }
     }
 }
 
-// Fungsi ini akan digunakan bersama oleh HalamanHomePetani
 @Composable
 fun LoadingScreen(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -155,7 +157,7 @@ fun ErrorScreen(onRetry: () -> Unit, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Gagal memuat data.")
+        Text("Gagal memuat data laporan.")
         Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = onRetry) { Text("Coba Lagi") }
     }
@@ -179,11 +181,14 @@ fun ItemTransaksiLengkap(trx: Transaksi, onClick: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Sinkronisasi field alamat_pengiriman dengan database
             Text(text = "Alamat: ${trx.alamat_pengiriman}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+
             Text(text = "Metode: ${trx.metode_bayar} (${trx.metode_kirim})", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Total Pembayaran", fontWeight = FontWeight.SemiBold)
+                Text(text = "Total Pendapatan", fontWeight = FontWeight.SemiBold)
                 Text(text = "Rp ${trx.total_bayar}", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
             }
         }
@@ -195,6 +200,7 @@ fun StatusBadge(status: String) {
     val (bgColor, textColor) = when (status) {
         "Selesai" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
         "Proses" -> Color(0xFFE3F2FD) to Color(0xFF1565C0)
+        "Batal" -> Color(0xFFFFEBEE) to Color(0xFFD32F2F)
         else -> Color(0xFFFFFDE7) to Color(0xFFFBC02D)
     }
     Box(modifier = Modifier
@@ -213,6 +219,7 @@ fun FilterButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
             containerColor = if (isSelected) Color(0xFF2E7D32) else Color(0xFFF1F1F1),
             contentColor = if (isSelected) Color.White else Color.Black
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
     ) { Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold) }
 }

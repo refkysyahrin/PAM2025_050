@@ -18,16 +18,20 @@ import retrofit2.http.Path
 
 interface YourTisApiService {
 
-    // --- AUTH ---
+    // --- AUTHENTICATION ---
     @POST("api/auth/login")
     suspend fun login(@Body loginRequest: Map<String, String>): LoginResponse
 
     @POST("api/auth/register")
     suspend fun register(@Body registerRequest: Map<String, String>): Map<String, Any>
 
-    // --- PRODUK ---
+    // --- PRODUK (SAYUR) ---
     @GET("api/products")
     suspend fun getAllSayur(): List<Sayur>
+
+    // Mendapatkan detail produk spesifik untuk Halaman Detail
+    @GET("api/products/{id}")
+    suspend fun getSayurById(@Path("id") id: Int): Sayur
 
     @Multipart
     @POST("api/products")
@@ -55,12 +59,16 @@ interface YourTisApiService {
     suspend fun deleteSayur(@Path("id") id: Int): Map<String, Any>
 
     // --- TRANSAKSI ---
-    // Menggunakan Response agar bisa mengecek isSuccessful tanpa error parsing
+    // Endpoint Checkout untuk mengirim data pesanan dan alamat pengiriman
     @POST("api/transactions/checkout")
     suspend fun checkout(@Body transactionData: Map<String, Any>): Response<ResponseBody>
 
     @GET("api/transactions")
     suspend fun getAllTransaksi(): List<Transaksi>
+
+    // Mendapatkan riwayat transaksi spesifik milik satu pembeli
+    @GET("api/transactions/user/{id_pembeli}")
+    suspend fun getTransaksiByPembeli(@Path("id_pembeli") idPembeli: Int): List<Transaksi>
 
     @PUT("api/transactions/{id}")
     suspend fun updateStatusTransaksi(

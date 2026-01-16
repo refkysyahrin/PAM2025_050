@@ -28,14 +28,14 @@ data class CartItem(
 
 class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() {
 
-    // Menyimpan ID User yang login agar transaksi tercatat dengan benar
+    // Menyimpan ID User yang login agar transaksi tercatat dengan benar di database
     var currentUserId by mutableStateOf(0)
 
     // State untuk memantau data katalog di halaman Home
     var homeUiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
         private set
 
-    // State untuk menyimpan list riwayat transaksi
+    // State untuk menyimpan list riwayat transaksi (Memperbaiki Error Laporan)
     var listTransaksi by mutableStateOf(listOf<Transaksi>())
         private set
 
@@ -64,11 +64,12 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         }
     }
 
-    // Mengambil riwayat transaksi milik pembeli
+    // Mengambil riwayat transaksi milik pembeli (Menghilangkan Unresolved Reference)
     fun getTransactions() {
         if (currentUserId == 0) return
         viewModelScope.launch {
             try {
+                // Memanggil repository untuk filter transaksi berdasarkan id_pembeli
                 val response = repository.getTransaksiByPembeli(currentUserId)
                 listTransaksi = response
             } catch (e: Exception) {
@@ -78,7 +79,7 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         }
     }
 
-    // Mengambil detail sayur spesifik (untuk halaman detail)
+    // Mengambil detail sayur spesifik (Untuk Halaman Detail Produk)
     suspend fun getSayurDetail(id: Int): Sayur? {
         return try {
             repository.getSayurById(id)
@@ -87,24 +88,27 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         }
     }
 
+    // Refresh data katalog secara real-time
     fun refreshSayur() {
         getSayur()
     }
 
-    // Menambah produk ke keranjang
+    // Menambah produk ke keranjang belanja
     fun addToCart(sayur: Sayur) {
         val index = _cartItems.indexOfFirst { it.sayur.id_sayur == sayur.id_sayur }
         if (index != -1) {
             val item = _cartItems[index]
+            // Validasi stok: Jumlah pembelian tidak boleh melebihi stok tersedia
             if (item.qty < sayur.stok) {
                 _cartItems[index] = item.copy(qty = item.qty + 1)
             }
         } else {
+            // Menambahkan barang baru ke keranjang
             _cartItems.add(CartItem(sayur, 1))
         }
     }
 
-    // Mengurangi atau menghapus produk dari keranjang
+    // Mengurangi atau menghapus produk dari keranjang belanja
     fun removeFromCart(cartItem: CartItem) {
         val index = _cartItems.indexOfFirst { it.sayur.id_sayur == cartItem.sayur.id_sayur }
         if (index != -1) {
@@ -117,20 +121,14 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         }
     }
 
-    // Menghitung total harga belanjaan
+    // Menghitung total harga belanjaan secara otomatis
     fun calculateTotal(): Int = _cartItems.sumOf { it.sayur.harga * it.qty }
 
     // Memproses data pesanan ke backend
     fun processCheckout(alamat: String, metodeKirim: String, metodeBayar: String) {
-        // Validasi input
-        if (currentUserId == 0) {
-            Log.e("CHECKOUT_ERROR", "Current User ID is 0. User belum login.")
-            checkoutUiState = LoginUiState.Error
-            return
-        }
-
-        if (_cartItems.isEmpty()) {
-            Log.e("CHECKOUT_ERROR", "Keranjang kosong, tidak bisa checkout.")
+        // Validasi identitas user dan isi form (REQ-TRX-01)
+        if (currentUserId == 0 || alamat.isBlank()) {
+            Log.e("CHECKOUT_ERROR", "Data tidak lengkap atau User belum login.")
             checkoutUiState = LoginUiState.Error
             return
         }
@@ -138,7 +136,7 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
         viewModelScope.launch {
             checkoutUiState = LoginUiState.Loading
             try {
-                // Konversi items ke List<Map> untuk memastikan serialisasi benar
+                // Menyiapkan data item detail transaksi
                 val itemsList = _cartItems.map {
                     mapOf(
                         "id_sayur" to it.sayur.id_sayur,
@@ -147,36 +145,30 @@ class PembeliViewModel(private val repository: YourTisRepository) : ViewModel() 
                     )
                 }
 
+                // Payload data transaksi sesuai kamus data
                 val transactionData = mapOf(
                     "id_pembeli" to currentUserId,
                     "total_bayar" to calculateTotal(),
-                    "metode_kirim" to metodeKirim,
-                    "metode_bayar" to metodeBayar,
-                    "alamat_pengiriman" to alamat,
+                    "metode_kirim" to metodeKirim, // Pickup atau Diantar
+                    "metode_bayar" to metodeBayar, // Transfer atau COD
+                    "alamat_pengiriman" to alamat, // Field wajib database
                     "items" to itemsList
                 )
 
-                Log.d("CHECKOUT", "Mengirim data: $transactionData")
-
-                // Panggil checkout ke backend
+                // Mengirim data ke repository (API POST)
                 repository.checkout(transactionData)
-                
-                Log.d("CHECKOUT", "Checkout berhasil! Membersihkan cart...")
 
-                // ✅ PERBAIKAN: Hanya clear cart setelah backend confirm sukses
+                // Jika sukses, bersihkan keranjang dan update stok katalog (REQ-TRX-04)
                 _cartItems.clear()
-
-                // Refresh katalog untuk update stok terbaru
                 getSayur()
 
-                // Set success state
+                // Navigasi sukses
                 checkoutUiState = LoginUiState.Success(User(id_user = currentUserId, "", "", "", "", ""))
-                Log.d("CHECKOUT", "Success state set. Cart cleared.")
+                Log.d("CHECKOUT", "Pesanan Berhasil Disimpan.")
 
             } catch (e: Exception) {
-                Log.e("CHECKOUT_ERROR", "Error saat checkout: ${e.message}", e)
+                Log.e("CHECKOUT_ERROR", "Error Checkout: ${e.message}")
                 checkoutUiState = LoginUiState.Error
-                // ❌ Jangan clear cart jika error - user bisa retry
             }
         }
     }
