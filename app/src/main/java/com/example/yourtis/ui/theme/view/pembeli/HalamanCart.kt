@@ -91,10 +91,16 @@ fun HalamanCart(
                             modifier = Modifier.padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Menambahkan gambar kecil di keranjang agar sesuai SRS
+                            // Logika Fallback Gambar: gambar_url (Cloud) atau /uploads/ (Local Server)
+                            val imageUrl = if (!item.sayur.gambar_url.isNullOrBlank()) {
+                                item.sayur.gambar_url.replace("localhost", "10.0.2.2")
+                            } else {
+                                "http://10.0.2.2:3000/uploads/${item.sayur.gambar}"
+                            }
+
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data(item.sayur.gambar_url?.replace("localhost", "10.0.2.2"))
+                                    .data(imageUrl)
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = null,
